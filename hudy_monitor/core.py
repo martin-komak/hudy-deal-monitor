@@ -214,6 +214,34 @@ def discover(fetcher, seeds, max_pages=35, max_sitemap_urls=150):
         jsonld = soup_debug.select('script[type="application/ld+json"]')
         print(
             "DEBUG PAGE:",
+            
+        for script in jsonld:
+            try:
+                data = json.loads(
+                    script.string or script.get_text()
+                )
+                if isinstance(data, dict):
+                    print(
+                        "DEBUG JSON-LD:",
+                        data.get("@type"),
+                        list(data.keys())[:10],
+                        flush=True
+                    )
+                elif isinstance(data, list):
+                    print(
+                        "DEBUG JSON-LD list:",
+                        len(data),
+                        flush=True
+                    )
+            except (ValueError, TypeError):
+                pass
+
+        print(
+            "DEBUG LINKS:",
+            len(soup_debug.select("a[href]")),
+            flush=True
+        )
+        
             url,
             "HTML bytes:", len(html),
             "JSON-LD blocks:", len(jsonld),
