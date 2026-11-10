@@ -1,0 +1,7 @@
+.env
+config.yaml
+*.sqlite3
+*.sqlite3-*
+__pycache__/
+.venv/
+*.log
