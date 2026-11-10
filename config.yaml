@@ -1,8 +1,7 @@
 site: https://www.hudysport.sk
 brands:
   - Mammut
-  - Patagonia
-  - Millet
+  - Columbia
   - La Sportiva
   - The North Face
 min_discount_percent: 50
