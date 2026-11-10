@@ -1,1 +1,1 @@
-# HUDY Deal Monitor
+"""HUDY price and discount monitoring."""
