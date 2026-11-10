@@ -209,6 +209,18 @@ def discover(fetcher, seeds, max_pages=35, max_sitemap_urls=150):
         except (requests.RequestException, PermissionError) as exc:
             print('SKIP', url, exc)
             continue
+        
+        soup_debug = BeautifulSoup(html, 'html.parser')
+        jsonld = soup_debug.select('script[type="application/ld+json"]')
+        print(
+            "DEBUG PAGE:",
+            url,
+            "HTML bytes:", len(html),
+            "JSON-LD blocks:", len(jsonld),
+            "Product blocks:", len(parse_products(html, url)),
+            flush=True
+        )
+        
         yield url, html
         soup = BeautifulSoup(html, 'html.parser')
         # Only follow links from configured sale/category pages, not every product page.
