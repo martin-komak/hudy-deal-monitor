@@ -103,7 +103,7 @@ def parse_products(html, url):
                         elif isinstance(v, list):
                             sizes.extend(str(x) for x in v)
                 found.append({
-                    'url': normalize_url(item.get('url') or url, url) or url,
+                    'url': normalize_url(item.get('url') or offer.get('url') or url, url) or url,
                     'name': item.get('name') or '', 'brand': str(brand),
                     'price': price, 'currency': offer.get('priceCurrency', 'EUR'),
                     'availability': str(offer.get('availability', '')),
@@ -231,16 +231,8 @@ def discover(fetcher, seeds, max_pages=35, max_sitemap_urls=150):
         u = normalize_url(seed, fetcher.base)
         if u and is_same_host(u, host):
             queue.append(u)
-    try:
-        xml = fetcher.get(urljoin(fetcher.base, '/sitemap.xml'))
-        root = ElementTree.fromstring(xml)
-        locs = [e.text for e in root.iter() if e.tag.endswith('loc') and e.text]
-        for loc in locs[:max_sitemap_urls]:
-            u = normalize_url(loc, fetcher.base)
-            if u and is_same_host(u, host) and not u.endswith('.xml'):
-                queue.append(u)
-    except (ValueError, ElementTree.ParseError, PermissionError, requests.RequestException):
-        pass
+    # Sitemap expansion disabled here: it previously exhausted the page budget
+    # on unrelated categories before visiting actual product pages.
     seen = set()
     while queue and len(seen) < max_pages:
         url = queue.pop(0)
@@ -271,13 +263,23 @@ def discover(fetcher, seeds, max_pages=35, max_sitemap_urls=150):
         print('DEBUG LINKS:', len(soup.select('a[href]')), flush=True)
         diagnose_size_selector(html, url)
         yield url, html
-        # Follow only same-host links from configured category/sale pages.
+        # Discover only product links represented by Product JSON-LD on sale pages.
+        # Never enqueue every navigation/menu link from the category page.
         if any(word in url.lower() for word in ('vypredaj', 'outlet', 'sale')):
-            for a in soup.select('a[href]'):
+            candidates = []
+            for product in products:
+                candidate = normalize_url(product.get('url'), url)
+                if candidate and candidate != url and is_same_host(candidate, host):
+                    candidates.append(candidate)
+            # Fallback: inspect links in product tiles only, never global navigation.
+            for a in soup.select('[data-product-id] a[href], .product-item a[href], .product-card a[href]'):
                 candidate = normalize_url(a.get('href'), url)
-                if candidate and is_same_host(candidate, host) and candidate not in seen and candidate not in queue:
-                    if len(queue) < max_pages * 5:
-                        queue.append(candidate)
+                if candidate and candidate != url and is_same_host(candidate, host):
+                    candidates.append(candidate)
+            for candidate in dict.fromkeys(candidates):
+                if candidate not in seen and candidate not in queue and len(queue) < max_pages * 3:
+                    queue.append(candidate)
+            print('DISCOVERY:', url, 'product URL candidates:', len(set(candidates)), flush=True)
 
 
 def init_db(db):
