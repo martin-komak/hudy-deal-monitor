@@ -40,12 +40,14 @@ def main():
             if not matching_brand(p, config['brands']):
                 continue
             size = size_match(p, config)
+            # A listed size is not proof that this variant is in stock.
+            stock_verified = p.get('stock_verified') is True
             new_low = store(db, p)
             count += 1
             discount = discount_percent(p)
-            print(p['name'], p['price'], 'EUR', 'discount=', discount, 'size=', size, url)
+            print(p['name'], p['price'], 'EUR', 'discount=', discount, 'size=', size, 'stock_verified=', stock_verified, 'product_url=', p['url'])
             # Safety: unknown sizes or missing original price do not qualify for sale alerts.
-            if size is not True:
+            if size is not True or not stock_verified:
                 continue
             is_sale = discount is not None and discount >= config['min_discount_percent']
             if not is_sale and not (new_low and config.get('alert_on_new_low', True)):
